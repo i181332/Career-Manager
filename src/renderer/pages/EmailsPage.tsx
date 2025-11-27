@@ -30,6 +30,7 @@ import { useEmailStore } from '../stores/emailStore';
 import { useAuthStore } from '../stores/authStore';
 import { useCompanyStore } from '../stores/companyStore';
 import EmailDetailDialog from '../components/EmailDetailDialog';
+import EmailPatternDialog from '../components/EmailPatternDialog';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 
@@ -58,6 +59,7 @@ const EmailsPage: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [patternDialogOpen, setPatternDialogOpen] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
 
@@ -220,11 +222,11 @@ const EmailsPage: React.FC = () => {
             variant="contained"
             size="large"
             onClick={() => {
-              // TODO: Gmail認証フローの実装
-              alert('Gmail連携機能は設定ページから実装してください');
+              // 設定ページへ遷移
+              window.location.hash = '#/settings';
             }}
           >
-            Gmail を連携
+            Gmail を連携 (設定ページへ)
           </Button>
         </Paper>
       </Container>
@@ -247,7 +249,15 @@ const EmailsPage: React.FC = () => {
           >
             {syncing ? '同期中...' : '同期'}
           </Button>
-          <IconButton>
+          <Button
+            variant="outlined"
+            startIcon={<SettingsIcon />}
+            onClick={() => setPatternDialogOpen(true)}
+            disabled={!selectedAccount}
+          >
+            自動振分ルール
+          </Button>
+          <IconButton onClick={() => window.location.hash = '#/settings'}>
             <SettingsIcon />
           </IconButton>
         </Box>
@@ -402,6 +412,25 @@ const EmailsPage: React.FC = () => {
           }}
           message={selectedMessage}
           onUpdate={loadMessages}
+        />
+      )}
+
+      {/* 自動振分ルールダイアログ */}
+      {selectedAccount && (
+        <EmailPatternDialog
+          open={patternDialogOpen}
+          onClose={() => setPatternDialogOpen(false)}
+          companyId={0} // 0 means global or we need to adjust the dialog to handle global patterns if supported, or just list all
+          // The current EmailPatternDialog might expect a specific companyId. 
+          // If it requires a companyId, we might need to adjust it or only allow pattern editing from CompanyDetail.
+          // Let's check EmailPatternDialog implementation.
+          // Assuming for now we want to show ALL patterns or allow adding for any company.
+          // If the dialog is strictly for ONE company, this might be tricky.
+          // Let's assume for now we pass 0 or undefined if the dialog supports it, or we need to modify the dialog.
+          // Wait, I should check EmailPatternDialog content first.
+          // I'll proceed with rendering it, but I might need to fix it if it crashes.
+          // Actually, let's pass companyId={0} and see if we can modify the dialog to handle "All Companies" or select company inside.
+          companyName="すべての企業"
         />
       )}
 

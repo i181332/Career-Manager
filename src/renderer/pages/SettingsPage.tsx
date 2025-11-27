@@ -25,6 +25,7 @@ import {
 } from '@mui/icons-material';
 import { useAuthStore } from '../stores/authStore';
 import { useThemeStore } from '../stores/themeStore';
+import { EmailAccountSettings } from '../components/EmailAccountSettings';
 
 const SettingsPage: React.FC = () => {
   const user = useAuthStore((state) => state.user);
@@ -155,7 +156,7 @@ const SettingsPage: React.FC = () => {
       console.log('Sending test notification to Slack...');
       const result = await window.api.sendTestNotification(webhookUrl);
       console.log('Test notification result:', result);
-      
+
       if (result.success) {
         alert('✅ テスト通知をSlackに送信しました！Slackを確認してください。');
       } else {
@@ -282,201 +283,211 @@ const SettingsPage: React.FC = () => {
           </Stack>
         </Paper>
 
-        {/* テーマ設定セクション */}
-        <Paper sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            {mode === 'dark' ? (
-              <DarkModeIcon sx={{ mr: 1 }} color="primary" />
-            ) : (
-              <LightModeIcon sx={{ mr: 1 }} color="primary" />
-            )}
-            <Typography variant="h6">外観設定</Typography>
-          </Box>
+      </Paper>
 
-          <Stack spacing={2}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={mode === 'dark'}
-                  onChange={toggleTheme}
-                />
-              }
-              label={mode === 'dark' ? 'ダークモード' : 'ライトモード'}
-            />
-            <Typography variant="body2" color="text.secondary">
-              ダークモードはアプリ全体の配色を暗くし、夜間の使用時に目の負担を軽減します。
-            </Typography>
-          </Stack>
-        </Paper>
+      {/* メール設定セクション */}
+      <Paper sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h6">メール設定</Typography>
+        </Box>
+        <EmailAccountSettings />
+      </Paper>
 
-        <Paper sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <NotificationsIcon sx={{ mr: 1 }} color="primary" />
-            <Typography variant="h6">Slack通知設定</Typography>
-          </Box>
-
-          {saveSuccess && (
-            <Alert severity="success" sx={{ mb: 2 }}>
-              設定を保存しました
-            </Alert>
+      {/* テーマ設定セクション */}
+      <Paper sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          {mode === 'dark' ? (
+            <DarkModeIcon sx={{ mr: 1 }} color="primary" />
+          ) : (
+            <LightModeIcon sx={{ mr: 1 }} color="primary" />
           )}
+          <Typography variant="h6">外観設定</Typography>
+        </Box>
 
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
+        <Stack spacing={2}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={mode === 'dark'}
+                onChange={toggleTheme}
+              />
+            }
+            label={mode === 'dark' ? 'ダークモード' : 'ライトモード'}
+          />
+          <Typography variant="body2" color="text.secondary">
+            ダークモードはアプリ全体の配色を暗くし、夜間の使用時に目の負担を軽減します。
+          </Typography>
+        </Stack>
+      </Paper >
 
-          <Stack spacing={2}>
-            <TextField
-              label="Slack Webhook URL"
-              value={webhookUrl}
-              onChange={(e) => setWebhookUrl(e.target.value)}
-              fullWidth
-              placeholder="https://hooks.slack.com/services/..."
-              helperText="Slackの Incoming Webhook URLを入力してください"
-            />
+      <Paper sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          <NotificationsIcon sx={{ mr: 1 }} color="primary" />
+          <Typography variant="h6">Slack通知設定</Typography>
+        </Box>
 
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={schedulerEnabled}
-                  onChange={(e) => setSchedulerEnabled(e.target.checked)}
-                />
-              }
-              label="自動通知を有効にする"
-            />
+        {saveSuccess && (
+          <Alert severity="success" sx={{ mb: 2 }}>
+            設定を保存しました
+          </Alert>
+        )}
 
-            <FormControl fullWidth>
-              <InputLabel>デフォルトリマインダー時間</InputLabel>
-              <Select
-                value={defaultReminderMinutes}
-                label="デフォルトリマインダー時間"
-                onChange={(e) => setDefaultReminderMinutes(Number(e.target.value))}
-              >
-                <MenuItem value={15}>15分前</MenuItem>
-                <MenuItem value={30}>30分前</MenuItem>
-                <MenuItem value={60}>1時間前</MenuItem>
-                <MenuItem value={120}>2時間前</MenuItem>
-                <MenuItem value={1440}>1日前</MenuItem>
-                <MenuItem value={2880}>2日前</MenuItem>
-              </Select>
-            </FormControl>
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
 
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSave}>
-                保存
-              </Button>
-              <Button variant="outlined" onClick={handleTestNotification}>
-                通知をテスト
-              </Button>
-            </Box>
-          </Stack>
-        </Paper>
+        <Stack spacing={2}>
+          <TextField
+            label="Slack Webhook URL"
+            value={webhookUrl}
+            onChange={(e) => setWebhookUrl(e.target.value)}
+            fullWidth
+            placeholder="https://hooks.slack.com/services/..."
+            helperText="Slackの Incoming Webhook URLを入力してください"
+          />
 
-        <Paper sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <DownloadIcon sx={{ mr: 1 }} color="primary" />
-            <Typography variant="h6">データエクスポート</Typography>
-          </Box>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={schedulerEnabled}
+                onChange={(e) => setSchedulerEnabled(e.target.checked)}
+              />
+            }
+            label="自動通知を有効にする"
+          />
 
-          {exportSuccess && (
-            <Alert severity="success" sx={{ mb: 2 }}>
-              {exportSuccess}
-            </Alert>
-          )}
-
-          <Stack spacing={2}>
-            <FormControl fullWidth>
-              <InputLabel>エクスポート形式</InputLabel>
-              <Select
-                value={exportFormat}
-                label="エクスポート形式"
-                onChange={(e) => setExportFormat(e.target.value as 'json' | 'csv')}
-              >
-                <MenuItem value="json">JSON</MenuItem>
-                <MenuItem value="csv">CSV (Excel対応)</MenuItem>
-              </Select>
-            </FormControl>
-
-            <FormControl fullWidth>
-              <InputLabel>データタイプ</InputLabel>
-              <Select
-                value={exportType}
-                label="データタイプ"
-                onChange={(e) => setExportType(e.target.value)}
-              >
-                <MenuItem value="all">すべてのデータ</MenuItem>
-                <MenuItem value="companies">企業一覧</MenuItem>
-                <MenuItem value="events">イベント一覧</MenuItem>
-                <MenuItem value="es">ES一覧</MenuItem>
-                <MenuItem value="selfAnalyses">自己分析</MenuItem>
-                <MenuItem value="interviewNotes">面接ノート</MenuItem>
-              </Select>
-            </FormControl>
-
-            <Button
-              variant="contained"
-              startIcon={exporting ? <CircularProgress size={20} /> : <DownloadIcon />}
-              onClick={handleExport}
-              disabled={exporting}
+          <FormControl fullWidth>
+            <InputLabel>デフォルトリマインダー時間</InputLabel>
+            <Select
+              value={defaultReminderMinutes}
+              label="デフォルトリマインダー時間"
+              onChange={(e) => setDefaultReminderMinutes(Number(e.target.value))}
             >
-              {exporting ? 'エクスポート中...' : 'エクスポート'}
+              <MenuItem value={15}>15分前</MenuItem>
+              <MenuItem value={30}>30分前</MenuItem>
+              <MenuItem value={60}>1時間前</MenuItem>
+              <MenuItem value={120}>2時間前</MenuItem>
+              <MenuItem value={1440}>1日前</MenuItem>
+              <MenuItem value={2880}>2日前</MenuItem>
+            </Select>
+          </FormControl>
+
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSave}>
+              保存
             </Button>
-          </Stack>
-        </Paper>
+            <Button variant="outlined" onClick={handleTestNotification}>
+              通知をテスト
+            </Button>
+          </Box>
+        </Stack>
+      </Paper>
 
-        <Paper sx={{ p: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            アプリケーション情報
-          </Typography>
-          <Typography variant="body2" color="text.secondary" gutterBottom>
-            バージョン: 1.0.0
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            ビルド日: {new Date().toLocaleDateString('ja-JP')}
-          </Typography>
+      <Paper sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          <DownloadIcon sx={{ mr: 1 }} color="primary" />
+          <Typography variant="h6">データエクスポート</Typography>
+        </Box>
 
-          <Stack spacing={2}>
-            {updateMessage && (
-              <Alert severity={updateAvailable ? 'info' : 'success'}>
-                {updateMessage}
-              </Alert>
+        {exportSuccess && (
+          <Alert severity="success" sx={{ mb: 2 }}>
+            {exportSuccess}
+          </Alert>
+        )}
+
+        <Stack spacing={2}>
+          <FormControl fullWidth>
+            <InputLabel>エクスポート形式</InputLabel>
+            <Select
+              value={exportFormat}
+              label="エクスポート形式"
+              onChange={(e) => setExportFormat(e.target.value as 'json' | 'csv')}
+            >
+              <MenuItem value="json">JSON</MenuItem>
+              <MenuItem value="csv">CSV (Excel対応)</MenuItem>
+            </Select>
+          </FormControl>
+
+          <FormControl fullWidth>
+            <InputLabel>データタイプ</InputLabel>
+            <Select
+              value={exportType}
+              label="データタイプ"
+              onChange={(e) => setExportType(e.target.value)}
+            >
+              <MenuItem value="all">すべてのデータ</MenuItem>
+              <MenuItem value="companies">企業一覧</MenuItem>
+              <MenuItem value="events">イベント一覧</MenuItem>
+              <MenuItem value="es">ES一覧</MenuItem>
+              <MenuItem value="selfAnalyses">自己分析</MenuItem>
+              <MenuItem value="interviewNotes">面接ノート</MenuItem>
+            </Select>
+          </FormControl>
+
+          <Button
+            variant="contained"
+            startIcon={exporting ? <CircularProgress size={20} /> : <DownloadIcon />}
+            onClick={handleExport}
+            disabled={exporting}
+          >
+            {exporting ? 'エクスポート中...' : 'エクスポート'}
+          </Button>
+        </Stack>
+      </Paper>
+
+      <Paper sx={{ p: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          アプリケーション情報
+        </Typography>
+        <Typography variant="body2" color="text.secondary" gutterBottom>
+          バージョン: 1.0.0
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          ビルド日: {new Date().toLocaleDateString('ja-JP')}
+        </Typography>
+
+        <Stack spacing={2}>
+          {updateMessage && (
+            <Alert severity={updateAvailable ? 'info' : 'success'}>
+              {updateMessage}
+            </Alert>
+          )}
+
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            <Button
+              variant="outlined"
+              onClick={handleCheckForUpdates}
+              disabled={updateChecking}
+            >
+              {updateChecking ? <CircularProgress size={20} /> : 'アップデートを確認'}
+            </Button>
+
+            {updateAvailable && (
+              <>
+                <Button
+                  variant="contained"
+                  onClick={handleDownloadUpdate}
+                  disabled={updateDownloading}
+                >
+                  {updateDownloading ? <CircularProgress size={20} /> : 'ダウンロード'}
+                </Button>
+
+                <Button
+                  variant="contained"
+                  color="success"
+                  onClick={handleInstallUpdate}
+                >
+                  再起動してインストール
+                </Button>
+              </>
             )}
-
-            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-              <Button
-                variant="outlined"
-                onClick={handleCheckForUpdates}
-                disabled={updateChecking}
-              >
-                {updateChecking ? <CircularProgress size={20} /> : 'アップデートを確認'}
-              </Button>
-
-              {updateAvailable && (
-                <>
-                  <Button
-                    variant="contained"
-                    onClick={handleDownloadUpdate}
-                    disabled={updateDownloading}
-                  >
-                    {updateDownloading ? <CircularProgress size={20} /> : 'ダウンロード'}
-                  </Button>
-
-                  <Button
-                    variant="contained"
-                    color="success"
-                    onClick={handleInstallUpdate}
-                  >
-                    再起動してインストール
-                  </Button>
-                </>
-              )}
-            </Box>
-          </Stack>
-        </Paper>
-      </Stack>
-    </Box>
+          </Box>
+        </Stack>
+      </Paper>
+    </Stack >
+    </Box >
   );
 };
 

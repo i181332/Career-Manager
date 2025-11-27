@@ -30,19 +30,23 @@ import {
   Cancel as CancelIcon,
 } from '@mui/icons-material';
 
+import { useCompanyStore } from '../stores/companyStore';
+
 interface EmailPatternDialogProps {
   open: boolean;
   onClose: () => void;
   companyId: number;
-  companyName: string;
+  companyName?: string;
 }
 
 const EmailPatternDialog: React.FC<EmailPatternDialogProps> = ({
   open,
   onClose,
-  companyId,
-  companyName,
+  companyId: initialCompanyId,
+  companyName: initialCompanyName,
 }) => {
+  const companies = useCompanyStore((state) => state.companies);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<number>(initialCompanyId);
   const [patterns, setPatterns] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,15 +59,24 @@ const EmailPatternDialog: React.FC<EmailPatternDialogProps> = ({
 
   useEffect(() => {
     if (open) {
-      loadPatterns();
+      if (initialCompanyId > 0) {
+        setSelectedCompanyId(initialCompanyId);
+        loadPatterns(initialCompanyId);
+      } else if (companies.length > 0) {
+        // デフォルトで最初の企業を選択、または選択なし状態にする
+        // ここでは選択なし(0)のままにして、ユーザーに選ばせる
+        setSelectedCompanyId(0);
+        setPatterns([]);
+      }
     }
-  }, [open, companyId]);
+  }, [open, initialCompanyId, companies]);
 
-  const loadPatterns = async () => {
+  const loadPatterns = async (id: number) => {
+    if (!id) return;
     setLoading(true);
     setError(null);
     try {
-      const result = await window.api.getEmailPatterns(companyId);
+      const result = await window.api.getEmailPatterns(id);
       if (result.success && result.data) {
         setPatterns(result.data);
       } else {
@@ -76,7 +89,22 @@ const EmailPatternDialog: React.FC<EmailPatternDialogProps> = ({
     }
   };
 
+  // 企業変更時のハンドラ
+  const handleCompanyChange = (event: any) => {
+    const newId = Number(event.target.value);
+    setSelectedCompanyId(newId);
+    if (newId > 0) {
+      loadPatterns(newId);
+    } else {
+      setPatterns([]);
+    }
+  };
+
   const handleAddPattern = async () => {
+    if (!selectedCompanyId) {
+      setError('企業を選択してください');
+      return;
+    }
     if (!newPatternValue.trim()) {
       setError('パターン値を入力してください');
       return;
@@ -84,7 +112,7 @@ const EmailPatternDialog: React.FC<EmailPatternDialogProps> = ({
 
     setError(null);
     try {
-      const result = await window.api.addEmailPattern(companyId, {
+      const result = await window.api.addEmailPattern(selectedCompanyId, {
         pattern_type: newPatternType,
         pattern_value: newPatternValue.trim(),
         priority: newPatternPriority,
@@ -181,7 +209,7 @@ const EmailPatternDialog: React.FC<EmailPatternDialogProps> = ({
           }}
         >
           <Typography variant="h6" component="span">
-            メール自動割り振りルール - {companyName}
+            メール自動割り振りルール {initialCompanyName ? `- ${initialCompanyName}` : ''}
           </Typography>
           <IconButton onClick={onClose} size="small">
             <CloseIcon />
@@ -207,146 +235,172 @@ const EmailPatternDialog: React.FC<EmailPatternDialogProps> = ({
           メールの送信元アドレスやドメイン、件名のキーワードに基づいて、自動的にこの企業に割り振るルールを設定できます。
         </Alert>
 
-        {/* 既存のパターン一覧 */}
-        <Typography variant="subtitle1" gutterBottom>
-          現在のルール
-        </Typography>
-
-        {patterns.length === 0 ? (
-          <Paper sx={{ p: 2, textAlign: 'center', mb: 3 }}>
-            <Typography color="text.secondary">
-              ルールが設定されていません
-            </Typography>
-          </Paper>
-        ) : (
-          <Paper sx={{ mb: 3 }}>
-            <List>
-              {patterns.map((pattern, index) => (
-                <React.Fragment key={pattern.id}>
-                  {index > 0 && <Divider />}
-                  <ListItem>
-                    <ListItemText
-                      primary={
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1,
-                          }}
-                        >
-                          <Chip
-                            label={getPatternTypeLabel(pattern.pattern_type)}
-                            size="small"
-                            color="primary"
-                            variant="outlined"
-                          />
-                          <Typography variant="body1">
-                            {pattern.pattern_value}
-                          </Typography>
-                          <Chip
-                            label={`優先度: ${pattern.priority}`}
-                            size="small"
-                            variant="outlined"
-                          />
-                        </Box>
-                      }
-                      secondary={
-                        pattern.enabled ? (
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              mt: 0.5,
-                            }}
-                          >
-                            <CheckCircleIcon
-                              sx={{ fontSize: 14, mr: 0.5, color: 'success.main' }}
-                            />
-                            <Typography variant="caption" color="success.main">
-                              有効
-                            </Typography>
-                          </Box>
-                        ) : (
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              mt: 0.5,
-                            }}
-                          >
-                            <CancelIcon
-                              sx={{ fontSize: 14, mr: 0.5, color: 'error.main' }}
-                            />
-                            <Typography variant="caption" color="error.main">
-                              無効
-                            </Typography>
-                          </Box>
-                        )
-                      }
-                    />
-                    <ListItemSecondaryAction>
-                      <IconButton
-                        edge="end"
-                        onClick={() => handleDeletePattern(pattern.id)}
-                        color="error"
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </ListItemSecondaryAction>
-                  </ListItem>
-                </React.Fragment>
-              ))}
-            </List>
-          </Paper>
-        )}
-
-        {/* 新しいルールを追加 */}
-        <Typography variant="subtitle1" gutterBottom>
-          新しいルールを追加
-        </Typography>
-
-        <Paper sx={{ p: 2 }}>
-          <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel>パターン種類</InputLabel>
+        {/* 企業選択 (グローバルモードの場合) */}
+        {initialCompanyId === 0 && (
+          <FormControl fullWidth sx={{ mb: 3 }}>
+            <InputLabel>対象企業</InputLabel>
             <Select
-              value={newPatternType}
-              onChange={(e) => setNewPatternType(e.target.value)}
-              label="パターン種類"
+              value={selectedCompanyId || ''}
+              label="対象企業"
+              onChange={handleCompanyChange}
             >
-              <MenuItem value="domain">ドメイン</MenuItem>
-              <MenuItem value="address">メールアドレス</MenuItem>
-              <MenuItem value="subject_keyword">件名キーワード</MenuItem>
+              <MenuItem value={0}>
+                <em>企業を選択してください</em>
+              </MenuItem>
+              {companies.map((company) => (
+                <MenuItem key={company.id} value={company.id}>
+                  {company.name}
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
+        )}
 
-          <TextField
-            fullWidth
-            label="パターン値"
-            value={newPatternValue}
-            onChange={(e) => setNewPatternValue(e.target.value)}
-            helperText={getPatternTypeHelp(newPatternType)}
-            sx={{ mb: 2 }}
-          />
+        {selectedCompanyId > 0 && (
+          <>
 
-          <TextField
-            fullWidth
-            type="number"
-            label="優先度"
-            value={newPatternPriority}
-            onChange={(e) => setNewPatternPriority(Number(e.target.value))}
-            helperText="数値が大きいほど優先度が高くなります"
-            sx={{ mb: 2 }}
-          />
+            {/* 既存のパターン一覧 */}
+            <Typography variant="subtitle1" gutterBottom>
+              現在のルール
+            </Typography>
 
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleAddPattern}
-            fullWidth
-          >
-            ルールを追加
-          </Button>
-        </Paper>
+            {patterns.length === 0 ? (
+              <Paper sx={{ p: 2, textAlign: 'center', mb: 3 }}>
+                <Typography color="text.secondary">
+                  ルールが設定されていません
+                </Typography>
+              </Paper>
+            ) : (
+              <Paper sx={{ mb: 3 }}>
+                <List>
+                  {patterns.map((pattern, index) => (
+                    <React.Fragment key={pattern.id}>
+                      {index > 0 && <Divider />}
+                      <ListItem>
+                        <ListItemText
+                          primary={
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1,
+                              }}
+                            >
+                              <Chip
+                                label={getPatternTypeLabel(pattern.pattern_type)}
+                                size="small"
+                                color="primary"
+                                variant="outlined"
+                              />
+                              <Typography variant="body1">
+                                {pattern.pattern_value}
+                              </Typography>
+                              <Chip
+                                label={`優先度: ${pattern.priority}`}
+                                size="small"
+                                variant="outlined"
+                              />
+                            </Box>
+                          }
+                          secondary={
+                            pattern.enabled ? (
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  mt: 0.5,
+                                }}
+                              >
+                                <CheckCircleIcon
+                                  sx={{ fontSize: 14, mr: 0.5, color: 'success.main' }}
+                                />
+                                <Typography variant="caption" color="success.main">
+                                  有効
+                                </Typography>
+                              </Box>
+                            ) : (
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  mt: 0.5,
+                                }}
+                              >
+                                <CancelIcon
+                                  sx={{ fontSize: 14, mr: 0.5, color: 'error.main' }}
+                                />
+                                <Typography variant="caption" color="error.main">
+                                  無効
+                                </Typography>
+                              </Box>
+                            )
+                          }
+                        />
+                        <ListItemSecondaryAction>
+                          <IconButton
+                            edge="end"
+                            onClick={() => handleDeletePattern(pattern.id)}
+                            color="error"
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </ListItemSecondaryAction>
+                      </ListItem>
+                    </React.Fragment>
+                  ))}
+                </List>
+              </Paper>
+            )}
+
+            {/* 新しいルールを追加 */}
+            <Typography variant="subtitle1" gutterBottom>
+              新しいルールを追加
+            </Typography>
+
+            <Paper sx={{ p: 2 }}>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel>パターン種類</InputLabel>
+                <Select
+                  value={newPatternType}
+                  onChange={(e) => setNewPatternType(e.target.value)}
+                  label="パターン種類"
+                >
+                  <MenuItem value="domain">ドメイン</MenuItem>
+                  <MenuItem value="address">メールアドレス</MenuItem>
+                  <MenuItem value="subject_keyword">件名キーワード</MenuItem>
+                </Select>
+              </FormControl>
+
+              <TextField
+                fullWidth
+                label="パターン値"
+                value={newPatternValue}
+                onChange={(e) => setNewPatternValue(e.target.value)}
+                helperText={getPatternTypeHelp(newPatternType)}
+                sx={{ mb: 2 }}
+              />
+
+              <TextField
+                fullWidth
+                type="number"
+                label="優先度"
+                value={newPatternPriority}
+                onChange={(e) => setNewPatternPriority(Number(e.target.value))}
+                helperText="数値が大きいほど優先度が高くなります"
+                sx={{ mb: 2 }}
+              />
+
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={handleAddPattern}
+                fullWidth
+              >
+                ルールを追加
+              </Button>
+            </Paper>
+          </>
+        )}
       </DialogContent>
 
       <DialogActions>
@@ -360,7 +414,7 @@ const EmailPatternDialog: React.FC<EmailPatternDialogProps> = ({
         <Box sx={{ flex: 1 }} />
         <Button onClick={onClose}>閉じる</Button>
       </DialogActions>
-    </Dialog>
+    </Dialog >
   );
 };
 
