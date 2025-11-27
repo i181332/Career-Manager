@@ -71,11 +71,11 @@ export const EmailAccountSettings: React.FC = () => {
     const handleAddAccount = async () => {
         try {
             const result = await window.api.getGmailAuthUrl();
-            if (result.success && result.url) {
-                setAuthUrl(result.url);
+            if (result.success && result.data) {
+                setAuthUrl(result.data);
                 setAuthDialogOpen(true);
                 // ブラウザで開く
-                window.open(result.url, '_blank');
+                window.open(result.data, '_blank');
             } else {
                 setError('認証URLの取得に失敗しました');
             }

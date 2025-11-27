@@ -104,6 +104,25 @@ export class GmailClient {
     }
   }
 
+  // プロフィール取得
+  async getProfile(): Promise<{ emailAddress: string; messagesTotal: number; historyId: string }> {
+    try {
+      const response = await this.gmail.users.getProfile({
+        userId: 'me',
+      });
+      return {
+        emailAddress: response.data.emailAddress,
+        messagesTotal: response.data.messagesTotal,
+        historyId: response.data.historyId,
+      };
+    } catch (error: any) {
+      if (error.code === 401) {
+        throw new Error('invalid_grant');
+      }
+      throw error;
+    }
+  }
+
   // 既読マーク（オプション）
   async markAsRead(messageId: string): Promise<void> {
     try {

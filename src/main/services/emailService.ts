@@ -2,15 +2,10 @@ import { EmailAccountRepository } from '../../database/repositories/emailAccount
 import { EmailMessageRepository } from '../../database/repositories/emailMessageRepository';
 import { GmailClient } from './gmailClient';
 import { EmailAllocationService } from './emailAllocationService';
-import { Result, EmailAccount, EmailMessage, SyncResult, PaginationOptions } from '../../database/types';
+import { Result, EmailAccount, EmailMessage, SyncResult, PaginationOptions, TokenData } from '../../database/types';
 import keytar from 'keytar';
 
 const SERVICE_NAME = 'CareerManagerApp';
-
-// Gmail OAuth設定（実際のアプリではこれらは環境変数から読み込む）
-const GMAIL_CLIENT_ID = process.env.GMAIL_CLIENT_ID || '';
-const GMAIL_CLIENT_SECRET = process.env.GMAIL_CLIENT_SECRET || '';
-const GMAIL_REDIRECT_URI = process.env.GMAIL_REDIRECT_URI || 'http://localhost:3000/oauth/callback';
 
 export class EmailService {
   private emailAccountRepo: EmailAccountRepository;
@@ -23,40 +18,44 @@ export class EmailService {
     this.allocationService = new EmailAllocationService();
   }
 
-  // Gmail認証URLを取得
   getGmailAuthUrl(): string {
-    const client = new GmailClient(GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REDIRECT_URI);
+    const clientId = process.env.GMAIL_CLIENT_ID || '';
+    const clientSecret = process.env.GMAIL_CLIENT_SECRET || '';
+    const redirectUri = process.env.GMAIL_REDIRECT_URI || 'http://localhost:3000/oauth/callback';
+
+    const client = new GmailClient(clientId, clientSecret, redirectUri);
     return client.getAuthUrl();
   }
 
-  // OAuth認証
-  async authenticateGmail(authCode: string, userId: number): Promise<Result<EmailAccount>> {
+  async authenticateGmail(code: string, userId: number): Promise<Result<EmailAccount>> {
+    const clientId = process.env.GMAIL_CLIENT_ID || '';
+    const clientSecret = process.env.GMAIL_CLIENT_SECRET || '';
+    const redirectUri = process.env.GMAIL_REDIRECT_URI || 'http://localhost:3000/oauth/callback';
+
     try {
-      const client = new GmailClient(GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REDIRECT_URI);
-      const tokens = await client.getTokensFromCode(authCode);
+      const client = new GmailClient(clientId, clientSecret, redirectUri);
+      const tokens = await client.getTokensFromCode(code);
 
-      // トークンを使ってユーザーのメールアドレスを取得
-      // Note: Gmail APIでプロフィール取得は現在未実装のため、仮実装
-      // 実際のメールアドレスは最初のメッセージから取得するか、別途実装が必要
-      const emailAddress = 'user@gmail.com'; // TODO: 実際のメールアドレス取得を実装
+      // Initialize client with tokens to fetch profile
+      const authenticatedClient = new GmailClient(clientId, clientSecret, redirectUri, tokens);
+      const profile = await authenticatedClient.getProfile();
+      const emailAddress = profile.emailAddress;
 
-      // 既存のアカウントを確認
+      console.log(`Authenticated Gmail account: ${emailAddress}`);
+
       const existingAccount = this.emailAccountRepo.findByEmail(emailAddress);
       if (existingAccount) {
-        // トークンを更新
         const account = this.emailAccountRepo.updateTokens(existingAccount.id, {
           access_token: tokens.access_token,
           refresh_token: tokens.refresh_token,
           token_expires_at: new Date(tokens.expiry_date).toISOString(),
         });
 
-        // トークンをキーチェーンに保存
         await this.saveTokens(account.id, tokens);
 
         return { success: true, data: account };
       }
 
-      // 新しいアカウントを作成
       const account = this.emailAccountRepo.create({
         user_id: userId,
         email_address: emailAddress,
@@ -66,26 +65,28 @@ export class EmailService {
         token_expires_at: new Date(tokens.expiry_date).toISOString(),
       });
 
-      // トークンをキーチェーンに保存
       await this.saveTokens(account.id, tokens);
 
       return { success: true, data: account };
     } catch (error: any) {
       console.error('Error authenticating Gmail:', error);
-      return { success: false, error: error.message || 'Gmail認証に失敗しました' };
+      // Return more specific error message
+      const errorMessage = error.response?.data?.error_description || error.message || 'Authentication failed';
+      return { success: false, error: errorMessage };
     }
   }
 
-  // トークン更新
-  async refreshAccessToken(emailAccountId: number): Promise<Result<void>> {
-    try {
-      const account = this.emailAccountRepo.findById(emailAccountId);
-      if (!account || !account.refresh_token) {
-        return { success: false, error: 'Account or refresh token not found' };
-      }
+  async refreshAccessToken(emailAccountId: number): Promise<string | null> {
+    const clientId = process.env.GMAIL_CLIENT_ID || '';
+    const clientSecret = process.env.GMAIL_CLIENT_SECRET || '';
+    const redirectUri = process.env.GMAIL_REDIRECT_URI || 'http://localhost:3000/oauth/callback';
 
-      const client = new GmailClient(GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REDIRECT_URI);
-      const newTokens = await client.refreshAccessToken(account.refresh_token);
+    const tokens = await this.getTokens(emailAccountId);
+    if (!tokens || !tokens.refresh_token) return null;
+
+    try {
+      const client = new GmailClient(clientId, clientSecret, redirectUri);
+      const newTokens = await client.refreshAccessToken(tokens.refresh_token);
 
       this.emailAccountRepo.updateTokens(emailAccountId, {
         access_token: newTokens.access_token,
@@ -95,31 +96,32 @@ export class EmailService {
 
       await this.saveTokens(emailAccountId, newTokens);
 
-      return { success: true };
-    } catch (error: any) {
-      console.error('Error refreshing access token:', error);
-      return { success: false, error: error.message };
+      return newTokens.access_token;
+    } catch (error) {
+      console.error('Error refreshing token:', error);
+      return null;
     }
   }
 
-  // メール同期
   async syncEmails(emailAccountId: number): Promise<Result<SyncResult>> {
+    const clientId = process.env.GMAIL_CLIENT_ID || '';
+    const clientSecret = process.env.GMAIL_CLIENT_SECRET || '';
+    const redirectUri = process.env.GMAIL_REDIRECT_URI || 'http://localhost:3000/oauth/callback';
+
     try {
       const account = this.emailAccountRepo.findById(emailAccountId);
       if (!account) {
-        return { success: false, error: 'Email account not found' };
+        return { success: false, error: 'Account not found' };
       }
 
-      // トークンをキーチェーンから取得
       const tokens = await this.getTokens(emailAccountId);
       if (!tokens) {
-        return { success: false, error: 'Tokens not found. Please re-authenticate.' };
+        return { success: false, error: 'Tokens not found' };
       }
 
-      const client = new GmailClient(GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REDIRECT_URI, tokens);
+      const client = new GmailClient(clientId, clientSecret, redirectUri, tokens);
 
-      // 最終同期日時以降のメッセージを取得
-      let query = 'in:inbox';
+      let query = 'label:INBOX';
       if (account.last_sync_at) {
         const syncDate = new Date(account.last_sync_at);
         const unixTime = Math.floor(syncDate.getTime() / 1000);
@@ -133,16 +135,13 @@ export class EmailService {
 
       for (const message of messages) {
         try {
-          // メッセージ詳細を取得
           const detail = await client.getMessage(message.id);
 
-          // 既に存在するか確認
           const existing = this.emailMessageRepo.findByMessageId(message.id);
           if (existing) {
             continue;
           }
 
-          // メッセージを解析
           const headers = detail.payload.headers;
           const subject = GmailClient.getHeader(headers, 'Subject');
           const from = GmailClient.getHeader(headers, 'From');
@@ -167,7 +166,6 @@ export class EmailService {
 
           messagesFetched++;
 
-          // 自動割り振りを実行
           const allocationResult = await this.allocationService.allocateEmail(emailMessage.id);
           if (allocationResult.success && allocationResult.data) {
             messagesAllocated++;
@@ -178,7 +176,6 @@ export class EmailService {
         }
       }
 
-      // 最終同期日時を更新
       this.emailAccountRepo.updateLastSyncAt(emailAccountId, new Date());
 
       return {
@@ -200,22 +197,8 @@ export class EmailService {
     }
   }
 
-  // 全アクティブアカウントの同期
   async syncAllActiveAccounts(): Promise<void> {
     try {
-      // sync_enabled = 1 のアカウントを全て取得
-      // Note: Repositoryにメソッドがない場合は追加が必要だが、ここでは簡易的に実装
-      // EmailAccountRepositoryにfindAllActive()を追加するのが正しいが、
-      // ここでは既存のfindByUserIdなどを駆使するか、直接DBアクセスが必要。
-      // Repositoryの変更を避けるため、一旦全ユーザーのアカウントを取得するロジックが必要だが、
-      // ユーザーIDが不明なため、Repositoryに `findAllActive` を追加することを推奨。
-      // 今回は `emailAccountRepo` の実装が不明確なため、仮に `findAllActive` があるとするか、
-      // または `db` を直接使う。
-      // `EmailService` は `db` を直接持っていないが `emailAccountRepo` は持っている。
-
-      // 修正: EmailAccountRepositoryにメソッドを追加する代わりに、
-      // ここで直接SQLを実行するのはアーキテクチャ違反になる可能性があるため、
-      // EmailAccountRepositoryを確認してメソッドを追加する。
       const accounts = this.emailAccountRepo.findAllActive();
 
       for (const account of accounts) {
@@ -226,7 +209,6 @@ export class EmailService {
     }
   }
 
-  // 特定メッセージ取得
   async getEmailMessage(id: number): Promise<Result<EmailMessage>> {
     try {
       const message = this.emailMessageRepo.findById(id);
@@ -240,7 +222,6 @@ export class EmailService {
     }
   }
 
-  // 企業別メール取得
   async getEmailsByCompany(companyId: number, pagination?: PaginationOptions): Promise<Result<EmailMessage[]>> {
     try {
       const messages = this.emailMessageRepo.findByCompanyId(companyId, pagination);
@@ -251,7 +232,6 @@ export class EmailService {
     }
   }
 
-  // 未割り振りメール取得
   async getUnallocatedEmails(emailAccountId: number, pagination?: PaginationOptions): Promise<Result<EmailMessage[]>> {
     try {
       const messages = this.emailMessageRepo.findUnallocated(emailAccountId, pagination);
@@ -262,7 +242,6 @@ export class EmailService {
     }
   }
 
-  // 全メール取得
   async getAllEmails(emailAccountId: number, pagination?: PaginationOptions): Promise<Result<EmailMessage[]>> {
     try {
       const messages = this.emailMessageRepo.findByEmailAccountId(emailAccountId, pagination);
@@ -273,7 +252,6 @@ export class EmailService {
     }
   }
 
-  // 既読管理
   async markAsRead(id: number): Promise<Result<void>> {
     try {
       this.emailMessageRepo.updateReadStatus(id, true);
@@ -284,7 +262,6 @@ export class EmailService {
     }
   }
 
-  // 検索
   async searchEmails(emailAccountId: number, query: string): Promise<Result<EmailMessage[]>> {
     try {
       const messages = this.emailMessageRepo.search(emailAccountId, query);
@@ -295,7 +272,6 @@ export class EmailService {
     }
   }
 
-  // ユーザーのメールアカウント取得
   async getAccountsByUserId(userId: number): Promise<Result<EmailAccount[]>> {
     try {
       const accounts = this.emailAccountRepo.findByUserId(userId);
@@ -306,27 +282,23 @@ export class EmailService {
     }
   }
 
-  // トークンをキーチェーンに保存
-  private async saveTokens(emailAccountId: number, tokens: any): Promise<void> {
-    const accountName = `email_account_${emailAccountId}`;
-    await keytar.setPassword(SERVICE_NAME, accountName, JSON.stringify(tokens));
-  }
-
-  // 添付ファイルダウンロード
   async downloadAttachment(emailMessageId: number, attachmentId: string): Promise<Result<{ data: string; size: number }>> {
+    const clientId = process.env.GMAIL_CLIENT_ID || '';
+    const clientSecret = process.env.GMAIL_CLIENT_SECRET || '';
+    const redirectUri = process.env.GMAIL_REDIRECT_URI || 'http://localhost:3000/oauth/callback';
+
     try {
       const message = this.emailMessageRepo.findById(emailMessageId);
       if (!message) {
         return { success: false, error: 'Email message not found' };
       }
 
-      // トークン取得
       const tokens = await this.getTokens(message.email_account_id);
       if (!tokens) {
         return { success: false, error: 'Tokens not found' };
       }
 
-      const client = new GmailClient(GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REDIRECT_URI, tokens);
+      const client = new GmailClient(clientId, clientSecret, redirectUri, tokens);
       const attachment = await client.getAttachment(message.message_id, attachmentId);
 
       return { success: true, data: attachment };
@@ -336,7 +308,6 @@ export class EmailService {
     }
   }
 
-  // メール解析（イベント・ES候補抽出）
   async analyzeEmail(emailMessageId: number): Promise<Result<{ events: any[]; es: any[] }>> {
     try {
       const message = this.emailMessageRepo.findById(emailMessageId);
@@ -344,7 +315,8 @@ export class EmailService {
         return { success: false, error: 'Email message not found' };
       }
 
-      const { EmailParser } = require('./emailParser'); // 循環参照回避のためrequire
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { EmailParser } = require('./emailParser');
       const events = EmailParser.extractEventCandidates(message.subject || '', message.body_text || '');
       const es = EmailParser.extractESDeadlineCandidates(message.subject || '', message.body_text || '');
 
@@ -355,8 +327,12 @@ export class EmailService {
     }
   }
 
-  // トークンをキーチェーンから取得
-  private async getTokens(emailAccountId: number): Promise<any | null> {
+  private async saveTokens(emailAccountId: number, tokens: TokenData): Promise<void> {
+    const accountName = `email_account_${emailAccountId}`;
+    await keytar.setPassword(SERVICE_NAME, accountName, JSON.stringify(tokens));
+  }
+
+  private async getTokens(emailAccountId: number): Promise<TokenData | null> {
     const accountName = `email_account_${emailAccountId}`;
     const tokensJson = await keytar.getPassword(SERVICE_NAME, accountName);
     return tokensJson ? JSON.parse(tokensJson) : null;

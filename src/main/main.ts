@@ -1,5 +1,9 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'path';
+import dotenv from 'dotenv';
+
+// 環境変数の読み込み
+dotenv.config();
 import fs from 'fs';
 import { autoUpdater } from 'electron-updater';
 import { initDatabase } from '../database/init';
@@ -524,7 +528,15 @@ function registerIpcHandlers() {
 
   // メールアカウント管理
   ipcMain.handle('email:getAuthUrl', () => {
-    return { success: true, data: emailService.getGmailAuthUrl() };
+    try {
+      console.log('IPC: email:getAuthUrl called');
+      const url = emailService.getGmailAuthUrl();
+      console.log('IPC: email:getAuthUrl success, url length:', url?.length);
+      return { success: true, data: url };
+    } catch (error: any) {
+      console.error('IPC: email:getAuthUrl failed:', error);
+      return { success: false, error: error.message };
+    }
   });
 
   ipcMain.handle('email:authenticate', async (_event, authCode, userId) => {
