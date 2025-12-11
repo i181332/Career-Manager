@@ -1,0 +1,7 @@
+
+> job-hunting-manager@1.0.0 build:main
+> tsc -p tsconfig.main.json
+
+src/main/services/syncService.ts(94,24): error TS2339: Property 'deadline' does not exist on type 'ESEntry'.
+src/main/services/syncService.ts(98,56): error TS2339: Property 'deadline' does not exist on type 'ESEntry'.
+src/main/services/syncService.ts(99,63): error TS2339: Property 'deadline' does not exist on type 'ESEntry'.

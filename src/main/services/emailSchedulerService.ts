@@ -13,7 +13,7 @@ export class EmailSchedulerService {
   }
 
   // ユーザーの全メールアカウントの同期スケジュールを登録
-  startSyncScheduler(userId: number, intervalMinutes: number = 10): void {
+  startSyncScheduler(userId: number, _intervalMinutes: number = 10): void {
     try {
       const accounts = this.emailAccountRepo.findByUserId(userId);
 
@@ -22,11 +22,11 @@ export class EmailSchedulerService {
           // 既存のジョブがあれば停止
           this.stopSyncScheduler(account.id);
 
-          // Cron式: 指定分ごとに実行
-          const cronExpression = `*/${intervalMinutes} * * * *`;
+          // Cron式: 毎日8:00と20:00に実行
+          const cronExpression = '0 8,20 * * *';
 
           const job = cron.schedule(cronExpression, async () => {
-            console.log(`[Email Sync] Starting sync for account ${account.id} (${account.email_address})`);
+            console.log(`[Email Sync] Starting scheduled sync for account ${account.id} (${account.email_address})`);
             try {
               const result = await this.emailService.syncEmails(account.id);
               if (result.success && result.data) {
@@ -42,7 +42,7 @@ export class EmailSchedulerService {
           });
 
           this.jobs.set(account.id, job);
-          console.log(`[Email Sync] Scheduled sync for account ${account.id} every ${intervalMinutes} minutes`);
+          console.log(`[Email Sync] Scheduled sync for account ${account.id} at 8:00 and 20:00`);
         }
       });
     } catch (error) {

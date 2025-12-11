@@ -111,6 +111,7 @@ export class EventRepository {
       type: string;
       remind_before_minutes: number;
       slack_notify: number;
+      google_calendar_event_id: string;
     }>
   ): Event | undefined {
     try {

@@ -23,6 +23,7 @@ import {
   AttachFile as AttachFileIcon,
 } from '@mui/icons-material';
 import { useCompanyStore } from '../stores/companyStore';
+import { useAuthStore } from '../stores/authStore';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 
@@ -45,6 +46,46 @@ const EmailDetailDialog: React.FC<EmailDetailDialogProps> = ({
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [extracting, setExtracting] = useState(false);
+  const user = useAuthStore((state) => state.user);
+
+  const handleExtractEvent = async () => {
+    if (!user?.ai_config) {
+      setError('AI設定がされていません。設定画面でコマンドを設定してください。');
+      return;
+    }
+
+    let aiConfig;
+    try {
+      aiConfig = JSON.parse(user.ai_config);
+    } catch (e) {
+      setError('AI設定の読み込みに失敗しました。');
+      return;
+    }
+
+    if (!aiConfig.enabled || !aiConfig.commandTemplate) {
+      setError('AI機能が無効か、コマンドが設定されていません。');
+      return;
+    }
+
+    setExtracting(true);
+    setError(null);
+    try {
+      const body = message.body_text || message.snippet || '';
+      const result = await window.api.extractEventWithAI(body, aiConfig.commandTemplate);
+
+      if (result.success) {
+        console.log('Extracted Event:', result.data);
+        alert(`イベントを抽出しました:\nタイトル: ${result.data.title}\n日時: ${result.data.start_at}\n\n(カレンダー登録機能は未実装です)`);
+      } else {
+        setError(result.error || 'イベント抽出に失敗しました');
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setExtracting(false);
+    }
+  };
 
   useEffect(() => {
     setSelectedCompanyId(message.company_id || null);
@@ -117,7 +158,7 @@ const EmailDetailDialog: React.FC<EmailDetailDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth disableEnforceFocus>
       <DialogTitle>
         <Box
           sx={{
@@ -292,6 +333,15 @@ const EmailDetailDialog: React.FC<EmailDetailDialogProps> = ({
             {saving ? '保存中...' : '割り振る'}
           </Button>
         )}
+        <Button
+          onClick={handleExtractEvent}
+          variant="outlined"
+          color="secondary"
+          disabled={extracting}
+          sx={{ ml: 1 }}
+        >
+          {extracting ? 'AI抽出中...' : 'AIでイベント抽出'}
+        </Button>
       </DialogActions>
     </Dialog>
   );

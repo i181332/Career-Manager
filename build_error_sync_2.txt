@@ -1,0 +1,60 @@
+
+> job-hunting-manager@1.0.0 build:main
+> tsc -p tsconfig.main.json
+
+src/main/services/syncService.ts(12,9): error TS1128: Declaration or statement expected.
+src/main/services/syncService.ts(12,11): error TS1005: 'try' expected.
+src/main/services/syncService.ts(16,5): error TS1128: Declaration or statement expected.
+src/main/services/syncService.ts(19,5): error TS1434: Unexpected keyword or identifier.
+src/main/services/syncService.ts(19,30): error TS1005: ',' expected.
+src/main/services/syncService.ts(19,39): error TS1005: ';' expected.
+src/main/services/syncService.ts(19,64): error TS1109: Expression expected.
+src/main/services/syncService.ts(20,9): error TS1005: ':' expected.
+src/main/services/syncService.ts(22,15): error TS1005: ':' expected.
+src/main/services/syncService.ts(22,68): error TS1005: ',' expected.
+src/main/services/syncService.ts(23,15): error TS1005: ':' expected.
+src/main/services/syncService.ts(23,96): error TS1005: ',' expected.
+src/main/services/syncService.ts(25,12): error TS1003: Identifier expected.
+src/main/services/syncService.ts(37,13): error TS1005: ',' expected.
+src/main/services/syncService.ts(37,19): error TS1005: ':' expected.
+src/main/services/syncService.ts(37,45): error TS1005: ',' expected.
+src/main/services/syncService.ts(38,15): error TS1005: ':' expected.
+src/main/services/syncService.ts(38,48): error TS1005: ',' expected.
+src/main/services/syncService.ts(39,15): error TS1005: ':' expected.
+src/main/services/syncService.ts(39,63): error TS1005: ',' expected.
+src/main/services/syncService.ts(40,15): error TS1005: ':' expected.
+src/main/services/syncService.ts(40,79): error TS1005: ',' expected.
+src/main/services/syncService.ts(42,12): error TS1003: Identifier expected.
+src/main/services/syncService.ts(46,13): error TS1005: ',' expected.
+src/main/services/syncService.ts(46,19): error TS1005: ':' expected.
+src/main/services/syncService.ts(46,50): error TS1005: ',' expected.
+src/main/services/syncService.ts(49,15): error TS1005: ':' expected.
+src/main/services/syncService.ts(49,59): error TS1005: ',' expected.
+src/main/services/syncService.ts(50,15): error TS1005: ':' expected.
+src/main/services/syncService.ts(50,67): error TS1005: ',' expected.
+src/main/services/syncService.ts(51,15): error TS1005: ':' expected.
+src/main/services/syncService.ts(51,101): error TS1005: ',' expected.
+src/main/services/syncService.ts(53,15): error TS1005: ':' expected.
+src/main/services/syncService.ts(53,84): error TS1005: ',' expected.
+src/main/services/syncService.ts(55,15): error TS1005: ':' expected.
+src/main/services/syncService.ts(55,44): error TS1005: ',' expected.
+src/main/services/syncService.ts(57,15): error TS1005: ':' expected.
+src/main/services/syncService.ts(57,64): error TS1005: ',' expected.
+src/main/services/syncService.ts(60,15): error TS1005: ':' expected.
+src/main/services/syncService.ts(60,59): error TS1005: ',' expected.
+src/main/services/syncService.ts(61,13): error TS1359: Identifier expected. 'const' is a reserved word that cannot be used here.
+src/main/services/syncService.ts(61,19): error TS1005: ',' expected.
+src/main/services/syncService.ts(61,25): error TS1005: ',' expected.
+src/main/services/syncService.ts(61,28): error TS1005: ',' expected.
+src/main/services/syncService.ts(80,13): error TS1005: ',' expected.
+src/main/services/syncService.ts(80,19): error TS1005: ':' expected.
+src/main/services/syncService.ts(80,68): error TS1005: ',' expected.
+src/main/services/syncService.ts(81,13): error TS1359: Identifier expected. 'const' is a reserved word that cannot be used here.
+src/main/services/syncService.ts(81,19): error TS1005: ',' expected.
+src/main/services/syncService.ts(81,22): error TS1005: ',' expected.
+src/main/services/syncService.ts(81,25): error TS1005: ',' expected.
+src/main/services/syncService.ts(96,13): error TS1005: ',' expected.
+src/main/services/syncService.ts(96,20): error TS1005: ':' expected.
+src/main/services/syncService.ts(96,37): error TS1005: ',' expected.
+src/main/services/syncService.ts(97,7): error TS1005: ',' expected.
+src/main/services/syncService.ts(102,1): error TS1128: Declaration or statement expected.

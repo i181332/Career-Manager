@@ -1,0 +1,42 @@
+Failed to initialize database: TypeError: Cannot read properties of undefined (reading 'getPath')
+[dotenv@17.2.3] injecting env (5) from .env -- tip: 翌・・backup and recover secrets: https://dotenvx.com/ops
+    at initDatabase (C:\Users\Yuta_Matsuo\蟆ｱ豢ｻ\Career_Manager\src\database\init.ts:18:30)
+    at main (C:\Users\Yuta_Matsuo\蟆ｱ豢ｻ\Career_Manager\src\main\debug_ai_batch.ts:17:5)
+    at path (C:\Users\Yuta_Matsuo\蟆ｱ豢ｻ\Career_Manager\src\main\debug_ai_batch.ts:100:1)
+    at Object.<anonymous> (C:\Users\Yuta_Matsuo\蟆ｱ豢ｻ\Career_Manager\src\main\debug_ai_batch.ts:100:27)
+    at Module._compile (node:internal/modules/cjs/loader:1730:14)
+    at Object.transformer (C:\Users\Yuta_Matsuo\AppData\Local\npm-cache\_npx\fd45a72a545557e9\node_modules\tsx\dist\register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1465:32)
+    at Function._load (node:internal/modules/cjs/loader:1282:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+Starting AI Batch Processing Debug...
+Error: Database not initialized. Call initDatabase() first.
+    at getDatabase (C:\Users\Yuta_Matsuo\蟆ｱ豢ｻ\Career_Manager\src\database\init.ts:10:11)
+    at main (C:\Users\Yuta_Matsuo\蟆ｱ豢ｻ\Career_Manager\src\main\debug_ai_batch.ts:18:16)
+    at path (C:\Users\Yuta_Matsuo\蟆ｱ豢ｻ\Career_Manager\src\main\debug_ai_batch.ts:100:1)
+    at Object.<anonymous> (C:\Users\Yuta_Matsuo\蟆ｱ豢ｻ\Career_Manager\src\main\debug_ai_batch.ts:100:27)
+    at Module._compile (node:internal/modules/cjs/loader:1730:14)
+    at Object.transformer (C:\Users\Yuta_Matsuo\AppData\Local\npm-cache\_npx\fd45a72a545557e9\node_modules\tsx\dist\register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1465:32)
+    at Function._load (node:internal/modules/cjs/loader:1282:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+C:\Users\Yuta_Matsuo\蟆ｱ豢ｻ\Career_Manager\src\database\init.ts:18
+    const userDataPath = app.getPath('userData');
+                             ^
+
+
+TypeError: Cannot read properties of undefined (reading 'getPath')
+    at initDatabase (C:\Users\Yuta_Matsuo\蟆ｱ豢ｻ\Career_Manager\src\database\init.ts:18:30)
+    at main (C:\Users\Yuta_Matsuo\蟆ｱ豢ｻ\Career_Manager\src\main\debug_ai_batch.ts:17:5)
+    at path (C:\Users\Yuta_Matsuo\蟆ｱ豢ｻ\Career_Manager\src\main\debug_ai_batch.ts:100:1)
+    at Object.<anonymous> (C:\Users\Yuta_Matsuo\蟆ｱ豢ｻ\Career_Manager\src\main\debug_ai_batch.ts:100:27)
+    at Module._compile (node:internal/modules/cjs/loader:1730:14)
+    at Object.transformer (C:\Users\Yuta_Matsuo\AppData\Local\npm-cache\_npx\fd45a72a545557e9\node_modules\tsx\dist\register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1465:32)
+    at Function._load (node:internal/modules/cjs/loader:1282:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+
+Node.js v22.16.0

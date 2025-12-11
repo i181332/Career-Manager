@@ -25,11 +25,18 @@ export class GmailClient {
     this.gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
   }
 
+  public getAuthClient(): OAuth2Client {
+    return this.oauth2Client;
+  }
+
   // 認証URLを生成
   getAuthUrl(): string {
     return this.oauth2Client.generateAuthUrl({
       access_type: 'offline',
-      scope: ['https://www.googleapis.com/auth/gmail.readonly'],
+      scope: [
+        'https://www.googleapis.com/auth/gmail.readonly',
+        'https://www.googleapis.com/auth/calendar'
+      ],
       prompt: 'consent', // 常にrefresh_tokenを取得
     });
   }

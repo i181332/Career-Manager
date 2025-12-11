@@ -64,6 +64,18 @@ export class EmailAllocationService {
         }
       }
 
+      // 4. 本文キーワード一致
+      if (email.body_text) {
+        patterns = this.patternRepo.findMatchingBodyPattern(email.body_text);
+        if (patterns.length > 0) {
+          const company = this.companyRepo.findById(patterns[0].company_id);
+          if (company) {
+            this.emailMessageRepo.updateCompanyAllocation(emailMessageId, company.id, 'auto');
+            return { success: true, data: company };
+          }
+        }
+      }
+
       // マッチしない場合はnull
       return { success: true, data: null };
     } catch (error: any) {

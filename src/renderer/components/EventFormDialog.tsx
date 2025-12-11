@@ -136,7 +136,7 @@ const EventFormDialog: React.FC<EventFormDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth disableEnforceFocus>
       <form onSubmit={handleSubmit}>
         <DialogTitle>{event ? 'イベントを編集' : 'イベントを追加'}</DialogTitle>
         <DialogContent>

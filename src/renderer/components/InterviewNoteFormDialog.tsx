@@ -93,7 +93,7 @@ const InterviewNoteFormDialog: React.FC<InterviewNoteFormDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth disableEnforceFocus>
       <DialogTitle>{initialData ? '面接ノートを編集' : '新規面接ノート'}</DialogTitle>
       <DialogContent>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>

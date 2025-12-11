@@ -8,19 +8,12 @@ import {
     ListItemText,
     ListItemSecondaryAction,
     IconButton,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogContentText,
-    DialogActions,
-    TextField,
     CircularProgress,
     Alert,
     Chip,
 } from '@mui/material';
 import {
     Add as AddIcon,
-    Delete as DeleteIcon,
     Sync as SyncIcon,
     Google as GoogleIcon,
     CheckCircle as CheckCircleIcon,
@@ -41,9 +34,6 @@ export const EmailAccountSettings: React.FC = () => {
     const [accounts, setAccounts] = useState<EmailAccount[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [authDialogOpen, setAuthDialogOpen] = useState(false);
-    const [authUrl, setAuthUrl] = useState('');
-    const [authCode, setAuthCode] = useState('');
     const [authenticating, setAuthenticating] = useState(false);
 
     useEffect(() => {
@@ -69,37 +59,19 @@ export const EmailAccountSettings: React.FC = () => {
     };
 
     const handleAddAccount = async () => {
-        try {
-            const result = await window.api.getGmailAuthUrl();
-            if (result.success && result.data) {
-                setAuthUrl(result.data);
-                setAuthDialogOpen(true);
-                // ブラウザで開く
-                window.open(result.data, '_blank');
-            } else {
-                setError('認証URLの取得に失敗しました');
-            }
-        } catch (err) {
-            setError('認証プロセスの開始に失敗しました');
-        }
-    };
-
-    const handleAuthSubmit = async () => {
-        if (!authCode.trim() || !user) return;
-
+        if (!user) return;
         setAuthenticating(true);
         try {
-            const result = await window.api.authenticateGmail(authCode, user.id);
+            // 自動認証フローを開始
+            const result = await window.api.startGmailAuth(user.id);
             if (result.success) {
-                setAuthDialogOpen(false);
-                setAuthCode('');
                 loadAccounts();
                 alert('Gmailアカウントを追加しました');
             } else {
                 setError(result.error || '認証に失敗しました');
             }
         } catch (err: any) {
-            setError(err.message || '認証中にエラーが発生しました');
+            setError(err.message || '認証プロセスの開始に失敗しました');
         } finally {
             setAuthenticating(false);
         }
@@ -116,10 +88,6 @@ export const EmailAccountSettings: React.FC = () => {
         }
     };
 
-    // 削除機能はAPIにないため、今回は実装しないか、必要なら追加する
-    // 現状のpreload.tsには deleteEmailAccount がないため、無効化のみ対応するか、APIを追加する必要がある
-    // ここでは一旦表示のみとする
-
     return (
         <Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -128,8 +96,9 @@ export const EmailAccountSettings: React.FC = () => {
                     variant="contained"
                     startIcon={<AddIcon />}
                     onClick={handleAddAccount}
+                    disabled={authenticating}
                 >
-                    アカウント追加
+                    {authenticating ? '認証中...' : 'アカウント追加'}
                 </Button>
             </Box>
 
@@ -197,45 +166,11 @@ export const EmailAccountSettings: React.FC = () => {
                                 >
                                     <SyncIcon />
                                 </IconButton>
-                                {/* 削除ボタンはAPI実装待ち */}
-                                {/* <IconButton edge="end" color="error">
-                  <DeleteIcon />
-                </IconButton> */}
                             </ListItemSecondaryAction>
                         </ListItem>
                     ))}
                 </List>
             )}
-
-            {/* 認証コード入力ダイアログ */}
-            <Dialog open={authDialogOpen} onClose={() => setAuthDialogOpen(false)}>
-                <DialogTitle>Gmail認証</DialogTitle>
-                <DialogContent>
-                    <DialogContentText sx={{ mb: 2 }}>
-                        ブラウザでGoogleの認証ページが開きます。
-                        認証を許可し、表示されたコードを以下に入力してください。
-                    </DialogContentText>
-                    <TextField
-                        autoFocus
-                        margin="dense"
-                        label="認証コード"
-                        fullWidth
-                        variant="outlined"
-                        value={authCode}
-                        onChange={(e) => setAuthCode(e.target.value)}
-                    />
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setAuthDialogOpen(false)}>キャンセル</Button>
-                    <Button
-                        onClick={handleAuthSubmit}
-                        variant="contained"
-                        disabled={!authCode || authenticating}
-                    >
-                        {authenticating ? '認証中...' : '認証する'}
-                    </Button>
-                </DialogActions>
-            </Dialog>
         </Box>
     );
 };

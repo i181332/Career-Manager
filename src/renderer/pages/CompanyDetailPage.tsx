@@ -18,7 +18,7 @@ import {
   CardContent,
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowBack, Edit, Delete, OpenInNew, CalendarToday, Assignment, School, Add } from '@mui/icons-material';
+import { ArrowBack, Edit, Delete, OpenInNew, CalendarToday, Assignment, School, Add, Sync as SyncIcon } from '@mui/icons-material';
 import { useCompanyStore, Company } from '../stores/companyStore';
 import CompanyFormDialog from '../components/CompanyFormDialog';
 import EventFormDialog from '../components/EventFormDialog';
@@ -684,20 +684,48 @@ const CompanyDetailPage: React.FC = () => {
 
           {/* メールタブ */}
           {tabValue === 4 && (
-            <CompanyMailList
-              companyId={selectedCompany.id}
-              onCreateEvent={(eventData) => {
-                setSelectedEvent({
-                  ...eventData,
-                  company_id: selectedCompany.id,
-                });
-                setEventDialogOpen(true);
-              }}
-              onCreateES={(esData) => {
-                // ES作成ページへ遷移（データを受け渡す方法は要検討だが、今回はstateで渡す）
-                navigate(`/es/new?companyId=${selectedCompany.id}`, { state: { initialData: esData } });
-              }}
-            />
+            <Box>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+                <Button
+                  variant="outlined"
+                  startIcon={<SyncIcon />}
+                  onClick={async () => {
+                    if (confirm('すべてのメールアカウントを同期しますか？')) {
+                      setLoadingTabData(true);
+                      try {
+                        await window.api.syncAllEmails();
+                        // リロードのためにタブを一度切り替えるなどのハックが必要だが、
+                        // ここではシンプルにアラートを出す
+                        alert('同期が完了しました。画面を更新してください。');
+                        // 強制リロード（簡易実装）
+                        loadTabData(selectedCompany.id, 4);
+                      } catch (error) {
+                        console.error('Sync failed:', error);
+                        alert('同期に失敗しました');
+                      } finally {
+                        setLoadingTabData(false);
+                      }
+                    }
+                  }}
+                >
+                  メール同期
+                </Button>
+              </Box>
+              <CompanyMailList
+                key={loadingTabData ? 'loading' : 'loaded'} // リロードトリガー
+                companyId={selectedCompany.id}
+                onCreateEvent={(eventData) => {
+                  setSelectedEvent({
+                    ...eventData,
+                    company_id: selectedCompany.id,
+                  });
+                  setEventDialogOpen(true);
+                }}
+                onCreateES={(esData) => {
+                  navigate(`/es/new?companyId=${selectedCompany.id}`, { state: { initialData: esData } });
+                }}
+              />
+            </Box>
           )}
         </Box>
       </Paper>

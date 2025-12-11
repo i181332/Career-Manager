@@ -1,0 +1,1 @@
+src/main/debug_ai_batch.ts(6,23): error TS2724: '"../database/init"' has no exported member named 'initializeDatabase'. Did you mean 'initDatabase'?

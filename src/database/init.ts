@@ -344,6 +344,47 @@ async function createTables(): Promise<void> {
     }
 
     // 不要なカラム（content, attachments）は残しておく（削除は危険）
+
+    // google_calendar_event_id カラムを追加 (events)
+    const eventsTableInfo = db.prepare("PRAGMA table_info(events)").all() as Array<{ name: string }>;
+    const existingEventsColumns = eventsTableInfo.map(col => col.name);
+    if (!existingEventsColumns.includes('google_calendar_event_id')) {
+      db.exec('ALTER TABLE events ADD COLUMN google_calendar_event_id TEXT');
+      console.log('Added google_calendar_event_id column to events');
+    }
+
+    // google_calendar_event_id カラムを追加 (es_entries)
+    if (!existingColumns.includes('google_calendar_event_id')) {
+      db.exec('ALTER TABLE es_entries ADD COLUMN google_calendar_event_id TEXT');
+      console.log('Added google_calendar_event_id column to es_entries');
+    }
+
+    // email_messages に ai_processed, ai_processed_at を追加
+    const emailTableInfo = db.prepare("PRAGMA table_info(email_messages)").all() as Array<{ name: string }>;
+    const existingEmailColumns = emailTableInfo.map(col => col.name);
+
+    if (!existingEmailColumns.includes('ai_processed')) {
+      db.exec('ALTER TABLE email_messages ADD COLUMN ai_processed INTEGER DEFAULT 0');
+      console.log('Added ai_processed column to email_messages');
+    }
+
+    if (!existingEmailColumns.includes('ai_processed_at')) {
+      db.exec('ALTER TABLE email_messages ADD COLUMN ai_processed_at DATETIME');
+      console.log('Added ai_processed_at column to email_messages');
+    }
+    if (!existingEmailColumns.includes('ai_processed_at')) {
+      db.exec('ALTER TABLE email_messages ADD COLUMN ai_processed_at DATETIME');
+      console.log('Added ai_processed_at column to email_messages');
+    }
+
+    // users に ai_config を追加
+    const usersTableInfo = db.prepare("PRAGMA table_info(users)").all() as Array<{ name: string }>;
+    const existingUsersColumns = usersTableInfo.map(col => col.name);
+
+    if (!existingUsersColumns.includes('ai_config')) {
+      db.exec("ALTER TABLE users ADD COLUMN ai_config TEXT DEFAULT '{}'");
+      console.log('Added ai_config column to users');
+    }
   } catch (error) {
     console.error('Migration error:', error);
     // マイグレーションエラーは致命的ではないので続行

@@ -277,7 +277,7 @@ const InterviewNotePage: React.FC = () => {
         companies={companies}
       />
 
-      <Dialog open={viewDialog} onClose={() => setViewDialog(false)} maxWidth="md" fullWidth>
+      <Dialog open={viewDialog} onClose={() => setViewDialog(false)} maxWidth="md" fullWidth disableEnforceFocus>
         {viewingNote && (
           <>
             <DialogTitle>

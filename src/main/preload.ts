@@ -96,8 +96,11 @@ const api = {
   getGmailAuthUrl: () => ipcRenderer.invoke('email:getAuthUrl'),
   authenticateGmail: (authCode: string, userId: number) =>
     ipcRenderer.invoke('email:authenticate', authCode, userId),
+  startGmailAuth: (userId: number) => ipcRenderer.invoke('email:startAuth', userId),
   getEmailAccounts: (userId: number) => ipcRenderer.invoke('email:getAccounts', userId),
   syncEmails: (emailAccountId: number) => ipcRenderer.invoke('email:syncNow', emailAccountId),
+  syncAllEmails: () => ipcRenderer.invoke('email:syncAll'),
+  syncCalendar: (userId: number) => ipcRenderer.invoke('calendar:sync', userId),
 
   // メッセージ取得
   getEmailsByCompany: (companyId: number, pagination?: any) =>
@@ -130,6 +133,22 @@ const api = {
     ipcRenderer.invoke('email:downloadAttachment', emailMessageId, attachmentId),
 
   analyzeEmail: (emailMessageId: number) => ipcRenderer.invoke('email:analyze', emailMessageId),
+
+  // システム関連
+  openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
+
+  // AI関連
+  extractEventWithAI: (emailBody: string, commandTemplate: string) =>
+    ipcRenderer.invoke('llm:extract-event', emailBody, commandTemplate),
+  processBatchWithAI: (userId: number, commandTemplate: string) =>
+    ipcRenderer.invoke('llm:process-batch', userId, commandTemplate),
+
+  // ログ関連
+  onAILog: (callback: (data: any) => void) => {
+    const subscription = (_event: any, data: any) => callback(data);
+    ipcRenderer.on('ai:log', subscription);
+    return () => ipcRenderer.removeListener('ai:log', subscription);
+  },
 };
 
 // APIを window.api として公開

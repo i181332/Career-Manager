@@ -124,6 +124,7 @@ export class ESEntryRepository {
       questions: string;
       answers: string;
       memo: string;
+      google_calendar_event_id: string;
     }>
   ): ESEntry | undefined {
     try {

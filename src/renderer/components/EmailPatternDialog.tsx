@@ -199,7 +199,7 @@ const EmailPatternDialog: React.FC<EmailPatternDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth disableEnforceFocus>
       <DialogTitle>
         <Box
           sx={{

@@ -103,7 +103,7 @@ const SelfAnalysisFormDialog: React.FC<SelfAnalysisFormDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth disableEnforceFocus>
       <DialogTitle>{initialData ? '自己分析を編集' : '新規自己分析'}</DialogTitle>
       <DialogContent>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>

@@ -285,7 +285,7 @@ const SelfAnalysisPage: React.FC = () => {
         companies={companies}
       />
 
-      <Dialog open={viewDialog} onClose={() => setViewDialog(false)} maxWidth="md" fullWidth>
+      <Dialog open={viewDialog} onClose={() => setViewDialog(false)} maxWidth="md" fullWidth disableEnforceFocus>
         {viewingAnalysis && (
           <>
             <DialogTitle>{viewingAnalysis.title}</DialogTitle>

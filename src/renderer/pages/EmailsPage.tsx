@@ -25,6 +25,7 @@ import {
   Email as EmailIcon,
   Business as BusinessIcon,
   Inbox as InboxIcon,
+  AutoAwesome as AutoAwesomeIcon,
 } from '@mui/icons-material';
 import { useEmailStore } from '../stores/emailStore';
 import { useAuthStore } from '../stores/authStore';
@@ -33,6 +34,9 @@ import EmailDetailDialog from '../components/EmailDetailDialog';
 import EmailPatternDialog from '../components/EmailPatternDialog';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
+
+import { AIDebugLog } from '../components/AIDebugLog';
+import { Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 
 const EmailsPage: React.FC = () => {
   const user = useAuthStore((state) => state.user);
@@ -62,6 +66,8 @@ const EmailsPage: React.FC = () => {
   const [patternDialogOpen, setPatternDialogOpen] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [batchProcessing, setBatchProcessing] = useState(false);
+  const [logDialogOpen, setLogDialogOpen] = useState(false);
 
   // 初回ロード時にアカウントを取得
   useEffect(() => {
@@ -159,6 +165,39 @@ const EmailsPage: React.FC = () => {
     }
   };
 
+  const handleBatchExtraction = async () => {
+    if (!user || !user.ai_config) return;
+
+    let config;
+    try {
+      config = JSON.parse(user.ai_config);
+    } catch (e) {
+      setError('AI設定の読み込みに失敗しました');
+      return;
+    }
+
+    if (!config.enabled || !config.commandTemplate) {
+      setError('AI機能が無効か、コマンドが設定されていません');
+      return;
+    }
+
+    setBatchProcessing(true);
+    setLogDialogOpen(true); // Open log dialog immediately
+
+    try {
+      const result = await window.api.processBatchWithAI(user.id, config.commandTemplate);
+      setSnackbarMessage(
+        `AI抽出完了: ${result.processed}件処理 (イベント: ${result.eventsCreated}件, 締切: ${result.esEntriesCreated}件, エラー: ${result.errors}件)`
+      );
+      setSnackbarOpen(true);
+      await loadMessages(); // Refresh to show updated status if we display it
+    } catch (err: any) {
+      setError('AI一括抽出に失敗しました: ' + err.message);
+    } finally {
+      setBatchProcessing(false);
+    }
+  };
+
   const handleSearch = async () => {
     if (!selectedAccount || !searchQuery.trim()) return;
 
@@ -196,6 +235,16 @@ const EmailsPage: React.FC = () => {
       return format(new Date(dateStr), 'yyyy/MM/dd HH:mm', { locale: ja });
     } catch {
       return dateStr;
+    }
+  };
+
+  const isAIEnabled = () => {
+    if (!user?.ai_config) return false;
+    try {
+      const config = JSON.parse(user.ai_config);
+      return !!config.enabled && !!config.commandTemplate;
+    } catch {
+      return false;
     }
   };
 
@@ -241,6 +290,17 @@ const EmailsPage: React.FC = () => {
           メール管理
         </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
+          {isAIEnabled() && (
+            <Button
+              variant="contained"
+              color="secondary"
+              startIcon={batchProcessing ? <CircularProgress size={20} color="inherit" /> : <AutoAwesomeIcon />}
+              onClick={handleBatchExtraction}
+              disabled={batchProcessing}
+            >
+              {batchProcessing ? 'AI抽出中...' : 'AI一括抽出'}
+            </Button>
+          )}
           <Button
             variant="outlined"
             startIcon={syncing ? <CircularProgress size={20} /> : <SyncIcon />}
@@ -433,6 +493,24 @@ const EmailsPage: React.FC = () => {
           companyName="すべての企業"
         />
       )}
+
+      {/* AIログダイアログ */}
+      <Dialog
+        open={logDialogOpen}
+        onClose={() => setLogDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>AI処理ログ</DialogTitle>
+        <DialogContent>
+          <AIDebugLog />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setLogDialogOpen(false)} disabled={batchProcessing}>
+            閉じる
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* エラー表示 */}
       <Snackbar

@@ -101,6 +101,7 @@ export class AuthService {
       email: string;
       slack_user_id: string;
       settings: string;
+      ai_config: string;
     }>
   ): { success: boolean; user?: User; error?: string } {
     try {

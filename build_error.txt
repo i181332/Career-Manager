@@ -1,0 +1,5 @@
+
+> job-hunting-manager@1.0.0 build:main
+> tsc -p tsconfig.main.json
+
+src/main/main.ts(122,9): error TS6133: 'iconPath' is declared but its value is never read.

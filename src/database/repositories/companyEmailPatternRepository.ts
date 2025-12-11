@@ -76,6 +76,16 @@ export class CompanyEmailPatternRepository {
     return stmt.all(subject) as CompanyEmailPattern[];
   }
 
+  findMatchingBodyPattern(body: string): CompanyEmailPattern[] {
+    const db = getDatabase();
+    const stmt = db.prepare(`
+      SELECT * FROM company_email_patterns
+      WHERE pattern_type = 'body_keyword' AND ? LIKE ('%' || pattern_value || '%') AND enabled = 1
+      ORDER BY priority DESC
+    `);
+    return stmt.all(body) as CompanyEmailPattern[];
+  }
+
   update(id: number, data: {
     pattern_type?: string;
     pattern_value?: string;

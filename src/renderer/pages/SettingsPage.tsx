@@ -26,6 +26,8 @@ import {
 import { useAuthStore } from '../stores/authStore';
 import { useThemeStore } from '../stores/themeStore';
 import { EmailAccountSettings } from '../components/EmailAccountSettings';
+import { CalendarSettings } from '../components/CalendarSettings';
+import { AISettings } from '../components/AISettings';
 
 const SettingsPage: React.FC = () => {
   const user = useAuthStore((state) => state.user);
@@ -288,7 +290,15 @@ const SettingsPage: React.FC = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
             <Typography variant="h6">メール設定</Typography>
           </Box>
-          <EmailAccountSettings />
+          {/* メールアカウント設定 */}
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <EmailAccountSettings />
+          </Paper>
+
+          {/* カレンダー同期設定 */}
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <CalendarSettings />
+          </Paper>
         </Paper>
 
         {/* テーマ設定セクション */}
@@ -381,6 +391,13 @@ const SettingsPage: React.FC = () => {
               </Button>
             </Box>
           </Stack>
+        </Paper>
+
+        <Paper sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6">AI設定 (CLI連携)</Typography>
+          </Box>
+          <AISettings />
         </Paper>
 
         <Paper sx={{ p: 3 }}>

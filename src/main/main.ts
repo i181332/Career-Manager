@@ -1,11 +1,9 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, shell, Tray, Menu, nativeImage, powerMonitor } from 'electron';
 import path from 'path';
 import dotenv from 'dotenv';
-
-// 環境変数の読み込み
-dotenv.config();
 import fs from 'fs';
 import { autoUpdater } from 'electron-updater';
+import cron from 'node-cron';
 import { initDatabase } from '../database/init';
 import { AuthService } from './services/authService';
 import { CompanyService } from './services/companyService';
@@ -19,6 +17,12 @@ import { ExportService } from './services/exportService';
 import { CalendarExportService } from './services/calendarExportService';
 import { EmailService } from './services/emailService';
 import { EmailAllocationService } from './services/emailAllocationService';
+import { AuthServerService } from './services/authServerService';
+import { SyncService } from './services/syncService';
+import { LLMService } from './services/LLMService';
+
+// 環境変数の読み込み
+dotenv.config();
 
 // ログファイルの設定
 const logPath = path.join(app.getPath('userData'), 'electron.log');
@@ -32,6 +36,8 @@ const log = (message: string) => {
 log('=== Application Starting ===');
 
 let mainWindow: BrowserWindow | null = null;
+let tray: Tray | null = null;
+
 // サービスインスタンス（データベース初期化後に作成）
 let authService: AuthService;
 let companyService: CompanyService;
@@ -45,6 +51,8 @@ let exportService: ExportService;
 let calendarExportService: CalendarExportService;
 let emailService: EmailService;
 let emailAllocationService: EmailAllocationService;
+let authServerService: AuthServerService;
+let syncService: SyncService;
 
 // 開発モードの判定：Viteサーバーが利用可能かどうかで判定
 const isDev = process.argv.includes('--dev') || process.env.ELECTRON_IS_DEV === '1';
@@ -113,6 +121,41 @@ function createWindow() {
   });
 }
 
+function createTray() {
+  // アイコンがない場合のフォールバック（開発中は空の画像など）
+  const trayIcon = nativeImage.createEmpty();
+
+  tray = new Tray(trayIcon);
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: '開く',
+      click: () => {
+        if (mainWindow === null) {
+          createWindow();
+        } else {
+          mainWindow.show();
+        }
+      }
+    },
+    {
+      label: '終了',
+      click: () => {
+        app.quit();
+      }
+    }
+  ]);
+  tray.setToolTip('就活管理アプリ (バックグラウンド実行中)');
+  tray.setContextMenu(contextMenu);
+
+  tray.on('double-click', () => {
+    if (mainWindow === null) {
+      createWindow();
+    } else {
+      mainWindow.show();
+    }
+  });
+}
+
 // 自動更新設定
 function setupAutoUpdater() {
   if (!isDev) {
@@ -173,11 +216,16 @@ function setupEmailSync() {
     emailService.syncAllActiveAccounts();
   }, 5000);
 
-  // 5分ごとに同期
-  setInterval(() => {
-    log('Starting scheduled email sync...');
-    emailService.syncAllActiveAccounts();
-  }, 300000);
+  // 毎日8:00と20:00に自動同期
+  cron.schedule('0 8,20 * * *', async () => {
+    log('Starting scheduled email sync (8:00/20:00)...');
+    try {
+      await emailService.syncAllActiveAccounts();
+      log('Scheduled email sync completed.');
+    } catch (error) {
+      log(`Scheduled email sync failed: ${error}`);
+    }
+  });
 }
 
 // サービスの初期化（データベース初期化後に呼び出す）
@@ -194,6 +242,8 @@ function initializeServices() {
   calendarExportService = new CalendarExportService();
   emailService = new EmailService();
   emailAllocationService = new EmailAllocationService();
+  authServerService = new AuthServerService();
+  syncService = new SyncService();
 }
 
 // アプリケーションの初期化
@@ -205,16 +255,54 @@ app.whenReady().then(async () => {
     // サービスの初期化（データベース初期化後）
     initializeServices();
 
+    // AIログの転送設定
+    LLMService.getInstance().on('log', (logData) => {
+      if (mainWindow) {
+        mainWindow.webContents.send('ai:log', logData);
+      }
+    });
+
     // IPCハンドラーの登録
     registerIpcHandlers();
 
     createWindow();
+    createTray();
 
     // 自動更新設定
     setupAutoUpdater();
 
     // メール同期設定
     setupEmailSync();
+
+    // スリープ復帰時の自動同期
+    powerMonitor.on('resume', () => {
+      log('System resumed from sleep. Scheduling sync...');
+      // ネットワーク接続確立待ちのため少し遅延させる
+      setTimeout(async () => {
+        try {
+          // ユーザーIDが必要だが、ここでは簡易的に全アクティブアカウントの同期を行う
+          // SyncService.syncAllはユーザーIDが必要だが、EmailService.syncAllActiveAccountsは不要
+          // カレンダー同期も行いたいので、アクティブなユーザーを特定する必要がある
+          // 現状のアーキテクチャでは「ログイン中のユーザー」という概念がメインプロセスにないため、
+          // EmailAccountからユーザーIDを特定して実行する
+          await emailService.getAccountsByUserId(1); // 仮: ユーザーID 1 (本来はセッション管理が必要)
+          // 実際には全ユーザーに対してループするか、アクティブなユーザーを特定するロジックが必要
+          // ここではシンプルに「メール同期」だけを先行して行う（カレンダー同期はユーザーコンテキストが必要なため）
+
+          log('Starting resume sync (Email)...');
+          await emailService.syncAllActiveAccounts();
+
+          // ユーザーID 1に対してカレンダー同期も試みる（シングルユーザー想定）
+          // 複数ユーザー対応が必要な場合は、ログイン状態管理の実装が必要
+          log('Starting resume sync (Calendar for User 1)...');
+          await syncService.syncCalendar(1);
+
+          log('Resume sync completed.');
+        } catch (error) {
+          log(`Resume sync failed: ${error}`);
+        }
+      }, 10000); // 10秒待機
+    });
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
@@ -228,8 +316,10 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', () => {
+  // メモリ最適化のため、ウィンドウが閉じられてもアプリは終了しない
+  // レンダラープロセスは終了するが、メインプロセスは常駐する
   if (process.platform !== 'darwin') {
-    app.quit();
+    // app.quit(); // 削除: バックグラウンドで動作させるため終了しない
   }
 });
 
@@ -298,8 +388,15 @@ function registerIpcHandlers() {
     return eventService.getById(id);
   });
 
-  ipcMain.handle('events:create', (_event, eventData) => {
-    return eventService.create(eventData);
+  ipcMain.handle('events:create', async (_event, eventData) => {
+    const result = eventService.create(eventData);
+    if (result.success && result.event) {
+      // バックグラウンドでカレンダー同期を実行（エラーはログ出力のみで、イベント作成自体は成功とする）
+      syncService.syncCalendar(result.event.user_id).catch(err => {
+        console.error('Auto-sync calendar failed:', err);
+      });
+    }
+    return result;
   });
 
   ipcMain.handle('events:update', (_event, id, eventData) => {
@@ -543,12 +640,51 @@ function registerIpcHandlers() {
     return await emailService.authenticateGmail(authCode, userId);
   });
 
+  ipcMain.handle('email:startAuth', async (_event, userId) => {
+    try {
+      // 1. Start local server
+      const codePromise = authServerService.start(3000);
+
+      // 2. Get Auth URL
+      const url = emailService.getGmailAuthUrl();
+
+      // 3. Open URL in external browser
+      await shell.openExternal(url);
+
+      // 4. Wait for code
+      const code = await codePromise;
+
+      // 5. Authenticate
+      return await emailService.authenticateGmail(code, userId);
+    } catch (error: any) {
+      console.error('Auth flow failed:', error);
+      authServerService.stop();
+      return { success: false, error: error.message };
+    }
+  });
+
   ipcMain.handle('email:getAccounts', async (_event, userId) => {
     return await emailService.getAccountsByUserId(userId);
   });
 
   ipcMain.handle('email:syncNow', async (_event, emailAccountId) => {
     return await emailService.syncEmails(emailAccountId);
+  });
+
+  ipcMain.handle('email:syncAll', async () => {
+    try {
+      // メールだけでなくカレンダーも同期する
+      // ユーザーID 1 (シングルユーザー想定)
+      await syncService.syncAll(1);
+      return { success: true };
+    } catch (error: any) {
+      console.error('Sync all failed:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('calendar:sync', async (_event, userId) => {
+    return await syncService.syncCalendar(userId);
   });
 
   // メッセージ取得
@@ -608,5 +744,42 @@ function registerIpcHandlers() {
 
   ipcMain.handle('email:analyze', async (_event, emailMessageId) => {
     return await emailService.analyzeEmail(emailMessageId);
+  });
+
+  // システム関連
+  ipcMain.handle('shell:openExternal', async (_event, url) => {
+    await shell.openExternal(url);
+    return { success: true };
+  });
+
+  // AI関連
+  ipcMain.handle('llm:extract-event', async (_event, emailBody, commandTemplate) => {
+    try {
+      const llmService = LLMService.getInstance();
+      const result = await llmService.extractInfo(emailBody, commandTemplate);
+      // Return the first event found, or empty object if none
+      // The frontend expects Partial<Event>
+      return { success: true, data: result.events.length > 0 ? result.events[0] : {} };
+    } catch (error: any) {
+      console.error('LLM extract failed:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('llm:process-batch', async (_event, userId: number, commandTemplate: string) => {
+    try {
+      const llmService = LLMService.getInstance();
+      const result = await llmService.processBatch(
+        userId,
+        commandTemplate,
+        eventService,
+        esEntryService,
+        syncService
+      );
+      return { success: true, data: result };
+    } catch (error: any) {
+      console.error('LLM batch process failed:', error);
+      return { success: false, error: error.message };
+    }
   });
 }

@@ -104,7 +104,7 @@ const CompanyFormDialog: React.FC<CompanyFormDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth disableEnforceFocus>
       <form onSubmit={handleSubmit}>
         <DialogTitle>{company ? '企業を編集' : '企業を追加'}</DialogTitle>
         <DialogContent>

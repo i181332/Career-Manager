@@ -7,8 +7,14 @@ export interface User {
   password_hash: string;
   slack_user_id?: string;
   settings: string; // JSON文字列
+  ai_config?: string; // JSON文字列 (AIConfig)
   created_at: string;
   updated_at: string;
+}
+
+export interface AIConfig {
+  enabled: number; // 0: disabled, 1: enabled
+  commandTemplate: string; // e.g. "gemini_CLI \"{{prompt}}\""
 }
 
 export interface Company {
@@ -37,6 +43,7 @@ export interface Event {
   type?: string;
   remind_before_minutes: number;
   slack_notify: number;
+  google_calendar_event_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -47,8 +54,10 @@ export interface ESEntry {
   company_id?: number;
   title: string;
   content?: string;
+  deadline?: string;
   attachments: string; // JSON文字列
   status: string;
+  google_calendar_event_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -136,6 +145,8 @@ export interface EmailMessage {
   attachments_metadata?: string; // JSON文字列
   allocation_method?: string;
   allocated_at?: string;
+  ai_processed?: number; // 0: 未処理, 1: 処理済み, 2: エラー/スキップ
+  ai_processed_at?: string;
   created_at: string;
   updated_at: string;
 }

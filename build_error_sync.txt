@@ -1,0 +1,12 @@
+
+> job-hunting-manager@1.0.0 build:main
+> tsc -p tsconfig.main.json
+
+src/main/main.ts(280,17): error TS6133: 'accounts' is declared but its value is never read.
+src/main/services/syncService.ts(13,13): error TS6133: 'eventService' is declared but its value is never read.
+src/main/services/syncService.ts(14,13): error TS6133: 'esEntryService' is declared but its value is never read.
+src/main/services/syncService.ts(100,59): error TS2353: Object literal may only specify known properties, and 'google_calendar_event_id' does not exist in type 'Partial<{ company_id: number; title: string; description: string; start_at: string; end_at: string; all_day: number; location: string; type: string; remind_before_minutes: number; slack_notify: number; }>'.
+src/main/services/syncService.ts(108,24): error TS2339: Property 'deadline' does not exist on type 'ESEntry'.
+src/main/services/syncService.ts(112,56): error TS2339: Property 'deadline' does not exist on type 'ESEntry'.
+src/main/services/syncService.ts(113,63): error TS2339: Property 'deadline' does not exist on type 'ESEntry'.
+src/main/services/syncService.ts(117,58): error TS2353: Object literal may only specify known properties, and 'google_calendar_event_id' does not exist in type 'Partial<{ title: string; deadline: string; status: string; questions: string; answers: string; memo: string; }>'.

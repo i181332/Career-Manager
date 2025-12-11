@@ -65,6 +65,7 @@ export class UserRepository {
       email: string;
       slack_user_id: string;
       settings: string;
+      ai_config: string;
     }>
   ): User | undefined {
     try {

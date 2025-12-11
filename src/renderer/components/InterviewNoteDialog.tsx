@@ -148,7 +148,7 @@ const InterviewNoteDialog: React.FC<InterviewNoteDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth disableEnforceFocus>
       <form onSubmit={handleSubmit}>
         <DialogTitle>{note ? '面接ノートを編集' : '面接ノートを追加'}</DialogTitle>
         <DialogContent>
